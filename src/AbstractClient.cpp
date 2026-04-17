@@ -2,6 +2,14 @@
 
 using namespace std;
 
+AbstractClient::~AbstractClient()
+{
+   const bool forcingShutdown = (canStop == false);
+   ShutdownConnection();
+   if (forcingShutdown)
+      disconnectHandler("server");
+}
+
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);
@@ -22,8 +30,8 @@ bool AbstractClient::Disconnect()
    const bool ok = StopConnection();
    if (ok)
    {
-      canStop = true;
-      receiveThread->join();
+      ShutdownConnection();
+      disconnectHandler("server");
    }
    return ok;
 }
@@ -43,6 +51,17 @@ void AbstractClient::Run()
       if (result.status == DataStatus::Valid)
          dataReceivedHandler(result.data);
       if (result.status == DataStatus::Disconnect)
-         HandleDisconnection();
+      {
+         // We don't call Disconnect() here because it will run on the receiving thread,
+         // and the join will deadlock.
+         StopConnection();
+         canStop = true;
+      }
    }
+}
+
+void AbstractClient::ShutdownConnection()
+{
+   canStop = true;
+   receiveThread->join();
 }

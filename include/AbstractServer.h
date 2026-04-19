@@ -19,6 +19,16 @@
  *
  * No message protocol is enforced, it is on the user of those classes to give meaning
  * to the data buffers being exchanged.
+ *
+ * The class runs two separate threads :
+ * - One for polling received data
+ * - One for executing external handlers
+ *
+ * Once new data is available (data received, connects, disconnects),
+ * the external handlers data is pushed to a queue, and that queue
+ * is processed in another thread.
+ * For UI (QT in mind), the handlers need to themselves make sure they
+ * execute their code in the main UI thread, but this is external to this class.
  */
 class AbstractServer
 {

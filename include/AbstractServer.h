@@ -3,11 +3,13 @@
 
 #include <atomic>
 #include <functional>
+#include <map>
+#include <mutex>
 #include <optional>
+#include <queue>
 #include <stdint.h>
 #include <string>
 #include <thread>
-#include <map>
 
 /**
  * @brief Base class for Server/Client communication utilities.
@@ -53,14 +55,27 @@ private:
    void Run();
    void HandleNewConnections();
    void HandleReceivedData();
-   void HandleDisconnection(const std::pair<int, std::string>& clientId);
+   std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
+
+   void ProcessDataQueue();
+   void ProcessNewConnections();
+   void ProcessReceivedData();
+   void ProcessDisconnections();
+
+   std::atomic<bool> canStop = true;
+   std::map<int, std::string> connectedClients;
+   std::unique_ptr<std::thread> receiveThread;
 
    ConnectionHandler connectHandler;
    ConnectionHandler disconnectHandler;
    ReceivedDataHandler dataReceivedHandler;
-   std::atomic<bool> canStop = true;
-   std::map<int, std::string> connectedClients;
-   std::unique_ptr<std::thread> serverThread;
+   std::unique_ptr<std::thread> processThread;
+   std::queue<std::pair<ClientId, DataResult>> dataQueue;
+   std::queue<ClientId> connectionQueue;
+   std::queue<ClientId> disconnectionQueue;
+   std::mutex dataMutex;
+   std::mutex connectionMutex;
+   std::mutex disconnectionMutex;
 };
 
 #endif // AbstractServer_H

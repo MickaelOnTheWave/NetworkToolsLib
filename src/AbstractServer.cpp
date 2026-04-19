@@ -7,11 +7,18 @@ bool AbstractServer::Start(const std::string& address, const unsigned int port)
    const bool ok = StartConnection(address, port);
    if (ok)
    {
-      serverThread.reset();
       canStop = false;
-      serverThread = std::make_unique<std::thread>([this]()
+
+      receiveThread.reset();
+      receiveThread = std::make_unique<std::thread>([this]()
       {
          Run();
+      });
+
+      processThread.reset();
+      processThread = std::make_unique<std::thread>([this]()
+      {
+         ProcessDataQueue();
       });
    }
    return ok;
@@ -23,7 +30,8 @@ bool AbstractServer::Stop()
    if (ok)
    {
       canStop = true;
-      serverThread->join();
+      receiveThread->join();
+      processThread->join();
    }
    return ok;
 }
@@ -50,29 +58,91 @@ void AbstractServer::HandleNewConnections()
    while (clientId.has_value())
    {
       connectedClients[clientId.value().socket] = clientId.value().address;
-      connectHandler(clientId.value().address);
+      connectionMutex.lock();
+      connectionQueue.push(clientId.value());
+      connectionMutex.unlock();
+
       clientId = GetNewConnection();
    }
 }
 
 void AbstractServer::HandleReceivedData()
 {
-   for (const auto client : connectedClients)
+   map<int, string>::iterator it = connectedClients.begin();
+   for (; it != connectedClients.end(); ++it)
    {
-      DataResult result = GetNewData(client.first);
+      DataResult result = GetNewData(it->first);
       while (result.status == DataStatus::Valid)
       {
-         dataReceivedHandler(client.second, result.data);
-         result = GetNewData(client.first);
+         ClientId clientId;
+         clientId.socket = it->first;
+         clientId.address = it->second;
+
+         dataMutex.lock();
+         dataQueue.push(make_pair(clientId, result));
+         dataMutex.unlock();
+
+         result = GetNewData(it->first);
       }
 
       if (result.status == DataStatus::Disconnect)
-         HandleDisconnection(client);
+         it = HandleDisconnection(*it);
    }
 }
 
-void AbstractServer::HandleDisconnection(const std::pair<int, string>& clientId)
+map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<int, string>& clientId)
 {
-   connectedClients.erase(clientId.first);
-   disconnectHandler(clientId.second);
+   auto clientIt = connectedClients.find(clientId.first);
+   map<int, string>::iterator newIt = connectedClients.erase(clientIt);
+
+   ClientId client;
+   client.socket = clientId.first;
+   client.address = clientId.second;
+   disconnectionMutex.lock();
+   disconnectionQueue.push(client);
+   disconnectionMutex.unlock();
+   return newIt;
+}
+
+void AbstractServer::ProcessDataQueue()
+{
+   while (!canStop)
+   {
+      ProcessNewConnections();
+      ProcessReceivedData();
+      ProcessDisconnections();
+   }
+}
+
+void AbstractServer::ProcessNewConnections()
+{
+   lock_guard<mutex> lock(connectionMutex);
+   if (!connectionQueue.empty())
+   {
+      const auto& client = connectionQueue.front();
+      connectHandler(client.address);
+      connectionQueue.pop();
+   }
+}
+
+void AbstractServer::ProcessReceivedData()
+{
+   lock_guard<mutex> lock(dataMutex);
+   if (!dataQueue.empty())
+   {
+      const auto& data = dataQueue.front();
+      dataReceivedHandler(data.first.address, data.second.data);
+      dataQueue.pop();
+   }
+}
+
+void AbstractServer::ProcessDisconnections()
+{
+   lock_guard<mutex> lock(disconnectionMutex);
+   if (!disconnectionQueue.empty())
+   {
+      const auto& client = disconnectionQueue.front();
+      disconnectHandler(client.address);
+      disconnectionQueue.pop();
+   }
 }

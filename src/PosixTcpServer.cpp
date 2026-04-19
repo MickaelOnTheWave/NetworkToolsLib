@@ -60,19 +60,20 @@ std::optional<AbstractServer::ClientId> PosixTcpServer::GetNewConnection()
 AbstractServer::DataResult PosixTcpServer::GetNewData(const int clientSocket)
 {
    DataResult result;
-   vector<uint8_t> buffer;
-   buffer.resize(dataBufferSize);
-   const ssize_t receiveCode = recv(clientSocket, &buffer, dataBufferSize, 0);
+   char* buffer = new char[dataBufferSize];
 
-   if (receiveCode < 0)
+   const ssize_t bytesRead = recv(clientSocket, buffer, dataBufferSize, MSG_DONTWAIT);
+   if (bytesRead < 0)
       result.status = DataStatus::Error;
-   else if (receiveCode == 0)
+   else if (bytesRead == 0)
       result.status = DataStatus::Disconnect;
    else
    {
       result.status = DataStatus::Valid;
-      result.data = buffer;
+      result.data.resize(bytesRead);
+      for (int i=0; i<bytesRead; ++i)
+         result.data[i] = buffer[i];
    }
-
+   delete [] buffer;
    return result;
 }

@@ -10,7 +10,7 @@ using namespace std;
 
 bool PosixTcpClient::Send(const std::vector<uint8_t>& buffer)
 {
-   const ssize_t bytesWritten = write(clientSocket, &buffer, buffer.size());
+   const ssize_t bytesWritten = write(clientSocket, buffer.data(), buffer.size());
    return (bytesWritten > 0 && bytesWritten == buffer.size());
 }
 
@@ -40,10 +40,11 @@ bool PosixTcpClient::StopConnection()
 AbstractClient::DataResult PosixTcpClient::GetNewData()
 {
    DataResult result;
-   vector<uint8_t> buffer;
+
+   std::vector<uint8_t> buffer;
    buffer.resize(dataBufferSize);
 
-   const ssize_t bytesRead = recv(clientSocket, &buffer, dataBufferSize, MSG_DONTWAIT);
+   const ssize_t bytesRead = recv(clientSocket, buffer.data(), dataBufferSize, MSG_DONTWAIT);
    if (bytesRead < 0)
       result.status = DataStatus::Error;
    else if (bytesRead == 0)
@@ -51,7 +52,9 @@ AbstractClient::DataResult PosixTcpClient::GetNewData()
    else
    {
       result.status = DataStatus::Valid;
-      result.data = buffer;
+      result.data.resize(bytesRead);
+      for (int i=0; i<bytesRead; ++i)
+         result.data[i] = buffer[i];
    }
    return result;
 }

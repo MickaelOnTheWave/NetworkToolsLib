@@ -2,6 +2,7 @@
 #define AbstractServer_H
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -41,6 +42,7 @@ public:
 
    void SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler,
                     ReceivedDataHandler _receivedHandler);
+   void SetWaitTime(std::chrono::duration<double, std::milli> waitTime);
 
 protected:
    struct ClientId
@@ -72,6 +74,7 @@ private:
    void ProcessReceivedData();
    void ProcessDisconnections();
 
+   std::chrono::duration<double, std::milli> threadWaitTime = std::chrono::milliseconds(10);
    std::atomic<bool> canStop = true;
    std::map<int, std::string> connectedClients;
    std::unique_ptr<std::thread> receiveThread;

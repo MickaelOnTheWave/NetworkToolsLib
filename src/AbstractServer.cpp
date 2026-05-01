@@ -43,24 +43,28 @@ void AbstractServer::SetHandlers(ConnectionHandler _connectHandler, ConnectionHa
    dataReceivedHandler = _receivedHandler;
 }
 
+void AbstractServer::SetWaitTime(std::chrono::duration<double, std::milli> waitTime)
+{
+   threadWaitTime = waitTime;
+}
+
 void AbstractServer::Run()
 {
    while (!canStop)
    {
       HandleNewConnections();
       HandleReceivedData();
+      this_thread::sleep_for(threadWaitTime);
    }
 }
 
 void AbstractServer::HandleNewConnections()
 {
+   lock_guard<mutex> lock(connectionMutex);
    std::optional<ClientId> clientId = GetNewConnection();
    while (clientId.has_value())
    {
-      connectedClients[clientId.value().socket] = clientId.value().address;
-      connectionMutex.lock();
       connectionQueue.push(clientId.value());
-      connectionMutex.unlock();
 
       clientId = GetNewConnection();
    }
@@ -69,7 +73,7 @@ void AbstractServer::HandleNewConnections()
 void AbstractServer::HandleReceivedData()
 {
    map<int, string>::iterator it = connectedClients.begin();
-   for (; it != connectedClients.end(); ++it)
+   while (it != connectedClients.end())
    {
       DataResult result = GetNewData(it->first);
       while (result.status == DataStatus::Valid)
@@ -87,20 +91,23 @@ void AbstractServer::HandleReceivedData()
 
       if (result.status == DataStatus::Disconnect)
          it = HandleDisconnection(*it);
+      else
+         ++it;
    }
 }
 
 map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<int, string>& clientId)
 {
-   auto clientIt = connectedClients.find(clientId.first);
-   map<int, string>::iterator newIt = connectedClients.erase(clientIt);
+   lock_guard<mutex> lock(disconnectionMutex);
 
    ClientId client;
    client.socket = clientId.first;
    client.address = clientId.second;
-   disconnectionMutex.lock();
+
+   auto clientIt = connectedClients.find(clientId.first);
+   map<int, string>::iterator newIt = connectedClients.erase(clientIt);
    disconnectionQueue.push(client);
-   disconnectionMutex.unlock();
+
    return newIt;
 }
 
@@ -111,6 +118,7 @@ void AbstractServer::ProcessDataQueue()
       ProcessNewConnections();
       ProcessReceivedData();
       ProcessDisconnections();
+      this_thread::sleep_for(threadWaitTime);
    }
 }
 
@@ -120,6 +128,7 @@ void AbstractServer::ProcessNewConnections()
    if (!connectionQueue.empty())
    {
       const auto& client = connectionQueue.front();
+      connectedClients[client.socket] = client.address;
       connectHandler(client.address);
       connectionQueue.pop();
    }

@@ -2,14 +2,6 @@
 
 using namespace std;
 
-AbstractClient::~AbstractClient()
-{
-   const bool forcingShutdown = (canStop == false);
-   ShutdownConnection();
-   if (forcingShutdown)
-      disconnectHandler("server");
-}
-
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);
@@ -17,9 +9,14 @@ bool AbstractClient::Connect(const string& address, const unsigned int port)
    {
       receiveThread.reset();
       canStop = false;
-      receiveThread = std::make_unique<std::thread>([this]()
+      receiveThread = make_unique<std::thread>([this]()
       {
          Run();
+      });
+
+      processThread = make_unique<std::thread>([this]()
+      {
+         ProcessQueue();
       });
    }
    return ok;
@@ -27,18 +24,19 @@ bool AbstractClient::Connect(const string& address, const unsigned int port)
 
 bool AbstractClient::Disconnect()
 {
-   const bool ok = StopConnection();
-   if (ok)
-   {
-      ShutdownConnection();
-      disconnectHandler("server");
-   }
-   return ok;
+   pendingDisconnect = true;
+   receiveThread->join();
+   processThread->join();
+   return true;
 }
 
-void AbstractClient::SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler, ReceivedDataHandler _receivedHandler)
+bool AbstractClient::IsConnected() const
 {
-   connectHandler = _connectHandler;
+   return !canStop;
+}
+
+void AbstractClient::SetHandlers(ConnectionHandler _disconnectHandler, ReceivedDataHandler _receivedHandler)
+{
    disconnectHandler = _disconnectHandler;
    dataReceivedHandler = _receivedHandler;
 }
@@ -47,21 +45,53 @@ void AbstractClient::Run()
 {
    while (!canStop)
    {
-      const DataResult result = GetNewData();
-      if (result.status == DataStatus::Valid)
-         dataReceivedHandler(result.data);
-      if (result.status == DataStatus::Disconnect)
-      {
-         // We don't call Disconnect() here because it will run on the receiving thread,
-         // and the join will deadlock.
-         StopConnection();
-         canStop = true;
-      }
+      HandleReceivedData();
+      this_thread::sleep_for(threadWaitTime);
    }
 }
 
-void AbstractClient::ShutdownConnection()
+void AbstractClient::HandleReceivedData()
 {
-   canStop = true;
-   receiveThread->join();
+   lock_guard<mutex> lock(dataMutex);
+   const DataResult result = GetNewData();
+   if (result.status == DataStatus::Valid)
+      dataQueue.push(result);
+   else if (result.status == DataStatus::Disconnect)
+      pendingDisconnect = true;
+}
+
+void AbstractClient::ProcessQueue()
+{
+   while (!canStop)
+   {
+      ProcessReceivedData();
+      ProcessDisconnection();
+      this_thread::sleep_for(threadWaitTime);
+   }
+}
+
+void AbstractClient::ProcessReceivedData()
+{
+   if (!dataQueue.empty())
+   {
+      lock_guard<mutex> lock(dataMutex);
+      const auto& data = dataQueue.front();
+      dataReceivedHandler(data.data);
+      dataQueue.pop();
+   }
+}
+
+void AbstractClient::ProcessDisconnection()
+{
+   if (pendingDisconnect)
+   {
+      lock_guard<mutex> lock(disconnectionMutex);
+      const bool ok = StopConnection();
+      if (ok)
+      {
+         canStop = true;
+         disconnectHandler("server");
+      }
+      pendingDisconnect = false;
+   }
 }

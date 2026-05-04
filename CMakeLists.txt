@@ -22,6 +22,10 @@ if(WITH_CURL_UTILITIES)
    )
 endif()
 
+if(NetworkToolsTests)
+  add_subdirectory(tests)
+endif(NetworkToolsTests)
+
 add_library(NetworkToolsLib ${SOURCES})
 target_include_directories(NetworkToolsLib PUBLIC "include")
 target_link_libraries (NetworkToolsLib BasicToolsLib)

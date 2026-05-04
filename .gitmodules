@@ -1,0 +1,3 @@
+[submodule "tests/libs/BasicToolsLib"]
+	path = tests/libs/BasicToolsLib
+	url = https://github.com/MickaelOnTheWave/BasicToolsLib.git

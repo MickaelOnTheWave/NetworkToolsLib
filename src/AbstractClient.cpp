@@ -76,7 +76,8 @@ void AbstractClient::ProcessReceivedData()
    {
       lock_guard<mutex> lock(dataMutex);
       const auto& data = dataQueue.front();
-      dataReceivedHandler(data.data);
+      if (dataReceivedHandler)
+         dataReceivedHandler(data.data);
       dataQueue.pop();
    }
 }
@@ -90,7 +91,8 @@ void AbstractClient::ProcessDisconnection()
       if (ok)
       {
          canStop = true;
-         disconnectHandler("server");
+         if (disconnectHandler)
+            disconnectHandler("server");
       }
       pendingDisconnect = false;
    }

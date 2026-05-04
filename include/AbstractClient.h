@@ -64,8 +64,8 @@ private:
    void ProcessReceivedData();
    void ProcessDisconnection();
 
-   ConnectionHandler disconnectHandler;
-   ReceivedDataHandler dataReceivedHandler;
+   ConnectionHandler disconnectHandler = nullptr;
+   ReceivedDataHandler dataReceivedHandler = nullptr;
    bool connected = false;
 
    std::chrono::duration<double, std::milli> threadWaitTime = std::chrono::milliseconds(10);

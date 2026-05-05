@@ -8,7 +8,7 @@
 
 using namespace std;
 
-bool PosixTcpServer::StartConnection(const std::string& ip, const unsigned int port)
+bool PosixTcpServer::StartConnection(const string& ip, const unsigned int port)
 {
    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
    if (serverSocket < 0)
@@ -48,8 +48,8 @@ std::optional<AbstractServer::ClientId> PosixTcpServer::GetNewConnection()
    if (clientSocket < 0)
       return nullopt;
 
-   std::string address = inet_ntoa(((struct sockaddr_in*)&clientAddress)->sin_addr);
-   address += ":" + std::to_string(ntohs(((struct sockaddr_in*)&clientAddress)->sin_port));
+   string address = inet_ntoa(((struct sockaddr_in*)&clientAddress)->sin_addr);
+   address += ":" + to_string(ntohs(((struct sockaddr_in*)&clientAddress)->sin_port));
 
    ClientId clientId;
    clientId.socket = clientSocket;

@@ -28,69 +28,59 @@ using DataPacket = vector<uint8_t>;
 
 /*******************/
 
-TEST_CASE("PosixTcpServer - Start+Stop doesn't crash")
+class PosixTcpServerTestFixture
 {
-   PosixTcpServer server;
-   PosixTcpClient client;
-
-   int serverConnections = 0;
-   int serverDisconnections = 0;
-   int serverDataReceived = 0;
-
-   auto serverConnectionHandler = [&serverConnections](const std::string& ip)
+public :
+   PosixTcpServerTestFixture()
    {
-      ++serverConnections;
-   };
-   auto serverDisconnectionHandler = [&serverDisconnections](const std::string& ip)
-   {
-      ++serverDisconnections;
-   };
-   auto serverDataHandler = [&serverDataReceived](const std::string& ip, const std::vector<uint8_t>& data)
-   {
-      ++serverDataReceived;
-   };
+      auto serverConnectionHandler = [this](const string& ip)
+      {
+         ++serverConnections;
+      };
+      auto serverDisconnectionHandler = [this](const string& ip)
+      {
+         ++serverDisconnections;
+      };
+      auto serverDataHandler = [this](const string& ip, const DataPacket& data)
+      {
+         serverDataReceived.push_back(data);
+      };
 
-   server.SetHandlers(serverConnectionHandler, serverDisconnectionHandler, serverDataHandler);
-   server.SetWaitTime(std::chrono::duration<double, std::milli>(0));
+      server.SetHandlers(serverConnectionHandler, serverDisconnectionHandler, serverDataHandler);
+      server.SetWaitTime(std::chrono::duration<double, std::milli>(0));
+   }
 
-   bool ok = server.Start("127.0.0.1", 20000);
-   REQUIRE( ok == true);
-
-   ok = server.Stop();
-   REQUIRE( ok == true);
-   CHECK(serverConnections == 0);
-   CHECK(serverDisconnections == 0);
-   CHECK(serverDataReceived == 0);
-}
-
-
-TEST_CASE("PosixTcpServer - Simple client connection")
-{
+protected:
    const string serverIp = "127.0.0.1";
-   constexpr unsigned int serverPort = 20000;
+   unsigned int serverPort = 20000;
+
    PosixTcpServer server;
    PosixTcpClient client;
 
    int serverConnections = 0;
    int serverDisconnections = 0;
    vector<DataPacket> serverDataReceived;
+};
 
-   auto serverConnectionHandler = [&serverConnections](const string& ip)
-   {
-      ++serverConnections;
-   };
-   auto serverDisconnectionHandler = [&serverDisconnections](const string& ip)
-   {
-      ++serverDisconnections;
-   };
-   auto serverDataHandler = [&serverDataReceived](const string& ip, const DataPacket& data)
-   {
-      serverDataReceived.push_back(data);
-   };
+/*******************/
 
-   server.SetHandlers(serverConnectionHandler, serverDisconnectionHandler, serverDataHandler);
-   server.SetWaitTime(chrono::duration<double, milli>(0));
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Start+Stop doesn't crash")
+{
+   serverPort = 10000;
+   bool ok = server.Start(serverIp, serverPort);
+   REQUIRE( ok == true);
 
+   ok = server.Stop();
+   REQUIRE( ok == true);
+   CHECK(serverConnections == 0);
+   CHECK(serverDisconnections == 0);
+   CHECK(serverDataReceived.size() == 0);
+}
+
+
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Single client connection")
+{
+   serverPort = 10001;
    bool ok = server.Start(serverIp, serverPort);
    REQUIRE( ok == true);
 
@@ -114,10 +104,27 @@ TEST_CASE("PosixTcpServer - Simple client connection")
    ok = server.Stop();
    REQUIRE( ok == true);
 
-
    CHECK(serverConnections == 1);
    CHECK(serverDisconnections == 1);
    CHECK(serverDataReceived.size() == 2);
    CHECK(serverDataReceived[0] == packet1);
    CHECK(serverDataReceived[1] == packet2);
+}
+
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Stop while client connected stops connection gracefully")
+{
+   serverPort = 10002;
+   bool ok = server.Start(serverIp, serverPort);
+
+   REQUIRE( ok == true);
+
+   ok = client.Connect(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   ok = server.Stop();
+   REQUIRE( ok == true);
+
+   CHECK(serverConnections == 1);
+   CHECK(serverDisconnections == 0);
+   CHECK(serverDataReceived.size() == 0);
 }

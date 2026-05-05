@@ -8,6 +8,12 @@
 
 using namespace std;
 
+PosixTcpServer::~PosixTcpServer()
+{
+   if (serverSocket >= 0)
+      close(serverSocket);
+}
+
 bool PosixTcpServer::StartConnection(const string& ip, const unsigned int port)
 {
    serverSocket = socket(AF_INET, SOCK_STREAM, 0);

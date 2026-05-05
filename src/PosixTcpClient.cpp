@@ -8,6 +8,12 @@
 
 using namespace std;
 
+PosixTcpClient::~PosixTcpClient()
+{
+   if (clientSocket >= 0)
+      close(clientSocket);
+}
+
 bool PosixTcpClient::Send(const std::vector<uint8_t>& buffer)
 {
    const ssize_t bytesWritten = write(clientSocket, buffer.data(), buffer.size());

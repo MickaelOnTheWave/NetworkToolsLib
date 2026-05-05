@@ -6,6 +6,8 @@
 class PosixTcpClient : public AbstractClient
 {
 public:
+   virtual ~PosixTcpClient();
+
    bool Send(const std::vector<uint8_t>& buffer) override;
 
 private:

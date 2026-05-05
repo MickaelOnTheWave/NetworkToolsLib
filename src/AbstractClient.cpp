@@ -2,6 +2,15 @@
 
 using namespace std;
 
+AbstractClient::~AbstractClient()
+{
+   canStop = true;
+   if (receiveThread && receiveThread->joinable())
+      receiveThread->join();
+   if (processThread && processThread->joinable())
+      processThread->join();
+}
+
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);

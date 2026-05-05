@@ -2,6 +2,15 @@
 
 using namespace std;
 
+AbstractServer::~AbstractServer()
+{
+   canStop = true;
+   if (receiveThread && receiveThread->joinable())
+      receiveThread->join();
+   if (processThread && processThread->joinable())
+      processThread->join();
+}
+
 bool AbstractServer::Start(const std::string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);

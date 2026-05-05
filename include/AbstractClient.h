@@ -29,6 +29,8 @@ public:
    using ConnectionHandler = std::function<void(const std::string&)>;
    using ReceivedDataHandler = std::function<void(std::vector<uint8_t>)>;
 
+   virtual ~AbstractClient();
+
    bool Connect(const std::string& address, const unsigned int port);
    bool Disconnect();
    bool IsConnected() const;

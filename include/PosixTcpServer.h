@@ -12,6 +12,9 @@
 */
 class PosixTcpServer : public AbstractServer
 {
+public:
+   virtual ~PosixTcpServer();
+
 private:
    bool StartConnection(const std::string& ip, const unsigned int port) override;
    bool StopConnection() override;

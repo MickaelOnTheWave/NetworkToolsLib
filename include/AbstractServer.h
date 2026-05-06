@@ -34,13 +34,17 @@
 class AbstractServer
 {
 public:
+   using DataFrame = std::vector<uint8_t>;
    using ConnectionHandler = std::function<void(const std::string&)>;
-   using ReceivedDataHandler = std::function<void(const std::string&, std::vector<uint8_t>)>;
+   using ReceivedDataHandler = std::function<void(const std::string&, DataFrame)>;
 
    virtual ~AbstractServer();
 
    bool Start(const std::string& address, const unsigned int port);
    bool Stop();
+
+   bool DisconnectClient(const std::string& address);
+   bool DisconnectAllClients();
 
    void SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler,
                     ReceivedDataHandler _receivedHandler);
@@ -57,7 +61,7 @@ protected:
    struct DataResult
    {
       DataStatus status;
-      std::vector<uint8_t> data;
+      DataFrame data;
    };
 
 private:

@@ -156,13 +156,14 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Single client connection - Packet c
 
 TEST_CASE_METHOD(PosixTcpServerTestFixture, "Stop while client connected stops connection gracefully")
 {
-   SKIP();
    serverPort = 10002;
    bool ok = server.Start(serverIp, serverPort);
    REQUIRE( ok == true);
 
    ok = client.Connect(serverIp, serverPort);
    REQUIRE( ok == true);
+
+   SleepFor(1);
 
    ok = server.Stop();
    REQUIRE( ok == true);

@@ -5,6 +5,7 @@ project (NetworkToolsLib)
 option(WITH_CURL_UTILITIES "Enable libcurl utilities" OFF)
 
 set(SOURCES
+   src/AbstractNetworkAgent.cpp include/AbstractNetworkAgent.h
    src/AbstractServer.cpp include/AbstractServer.h
    src/AbstractClient.cpp include/AbstractClient.h
    src/PosixTcpServer.cpp include/PosixTcpServer.h

@@ -4,32 +4,13 @@ using namespace std;
 
 AbstractServer::~AbstractServer()
 {
-   canStop = true;
-   if (receiveThread && receiveThread->joinable())
-      receiveThread->join();
-   if (processThread && processThread->joinable())
-      processThread->join();
 }
 
 bool AbstractServer::Start(const std::string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);
    if (ok)
-   {
-      canStop = false;
-
-      receiveThread.reset();
-      receiveThread = std::make_unique<std::thread>([this]()
-      {
-         Run();
-      });
-
-      processThread.reset();
-      processThread = std::make_unique<std::thread>([this]()
-      {
-         ProcessDataQueue();
-      });
-   }
+      StartNetworkProcessing();
    return ok;
 }
 
@@ -37,11 +18,7 @@ bool AbstractServer::Stop()
 {
    const bool ok = StopConnection();
    if (ok)
-   {
-      canStop = true;
-      receiveThread->join();
-      processThread->join();
-   }
+      StopNetworkProcessing();
    return ok;
 }
 
@@ -52,19 +29,10 @@ void AbstractServer::SetHandlers(ConnectionHandler _connectHandler, ConnectionHa
    dataReceivedHandler = _receivedHandler;
 }
 
-void AbstractServer::SetWaitTime(std::chrono::duration<double, std::milli> waitTime)
+void AbstractServer::HandleNetworkEvents()
 {
-   threadWaitTime = waitTime;
-}
-
-void AbstractServer::Run()
-{
-   while (!canStop)
-   {
-      HandleNewConnections();
-      HandleReceivedData();
-      this_thread::sleep_for(threadWaitTime);
-   }
+   HandleNewConnections();
+   HandleReceivedData();
 }
 
 void AbstractServer::HandleNewConnections()
@@ -120,15 +88,11 @@ map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<i
    return newIt;
 }
 
-void AbstractServer::ProcessDataQueue()
+void AbstractServer::ProcessActionQueue()
 {
-   while (!canStop)
-   {
-      ProcessNewConnections();
-      ProcessReceivedData();
-      ProcessDisconnections();
-      this_thread::sleep_for(threadWaitTime);
-   }
+   ProcessNewConnections();
+   ProcessReceivedData();
+   ProcessDisconnections();
 }
 
 void AbstractServer::ProcessNewConnections()

@@ -1,16 +1,14 @@
 #ifndef AbstractServer_H
 #define AbstractServer_H
 
-#include <atomic>
-#include <chrono>
+#include "AbstractNetworkAgent.h"
+
 #include <functional>
 #include <map>
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <stdint.h>
 #include <string>
-#include <thread>
 
 /**
  * @brief Base class for Server/Client communication utilities.
@@ -31,11 +29,9 @@
  * For UI (QT in mind), the handlers need to themselves make sure they
  * execute their code in the main UI thread, but this is external to this class.
  */
-class AbstractServer
+class AbstractServer : public AbstractNetworkAgent
 {
 public:
-   using DataFrame = std::vector<uint8_t>;
-   using ConnectionHandler = std::function<void(const std::string&)>;
    using ReceivedDataHandler = std::function<void(const std::string&, DataFrame)>;
 
    virtual ~AbstractServer();
@@ -48,21 +44,6 @@ public:
 
    void SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler,
                     ReceivedDataHandler _receivedHandler);
-   void SetWaitTime(std::chrono::duration<double, std::milli> waitTime);
-
-protected:
-   struct ClientId
-   {
-      int socket;
-      std::string address;
-   };
-
-   enum class DataStatus { Valid, Disconnect, Error };
-   struct DataResult
-   {
-      DataStatus status;
-      DataFrame data;
-   };
 
 private:
    virtual bool StartConnection(const std::string& ip, const unsigned int port) = 0;
@@ -70,31 +51,26 @@ private:
    virtual std::optional<ClientId> GetNewConnection() = 0;
    virtual DataResult GetNewData(const int clientSocket) = 0;
 
-   void Run();
+   void HandleNetworkEvents() override;
    void HandleNewConnections();
    void HandleReceivedData();
-   std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
 
-   void ProcessDataQueue();
+   void ProcessActionQueue() override;
    void ProcessNewConnections();
    void ProcessReceivedData();
    void ProcessDisconnections();
 
-   std::chrono::duration<double, std::milli> threadWaitTime = std::chrono::milliseconds(10);
-   std::atomic<bool> canStop = true;
+   std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
+
    std::map<int, std::string> connectedClients;
-   std::unique_ptr<std::thread> receiveThread;
 
    ConnectionHandler connectHandler;
    ConnectionHandler disconnectHandler;
    ReceivedDataHandler dataReceivedHandler;
-   std::unique_ptr<std::thread> processThread;
    std::queue<std::pair<ClientId, DataResult>> dataQueue;
    std::queue<ClientId> connectionQueue;
    std::queue<ClientId> disconnectionQueue;
-   std::mutex dataMutex;
    std::mutex connectionMutex;
-   std::mutex disconnectionMutex;
 };
 
 #endif // AbstractServer_H

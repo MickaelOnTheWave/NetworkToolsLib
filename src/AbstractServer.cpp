@@ -2,10 +2,6 @@
 
 using namespace std;
 
-AbstractServer::~AbstractServer()
-{
-}
-
 bool AbstractServer::Start(const std::string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);

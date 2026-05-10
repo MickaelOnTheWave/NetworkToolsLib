@@ -2,32 +2,11 @@
 
 using namespace std;
 
-AbstractClient::~AbstractClient()
-{
-   canStop = true;
-   if (receiveThread && receiveThread->joinable())
-      receiveThread->join();
-   if (processThread && processThread->joinable())
-      processThread->join();
-}
-
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);
    if (ok)
-   {
-      receiveThread.reset();
-      canStop = false;
-      receiveThread = make_unique<std::thread>([this]()
-      {
-         Run();
-      });
-
-      processThread = make_unique<std::thread>([this]()
-      {
-         ProcessQueue();
-      });
-   }
+      StartNetworkProcessing();
    return ok;
 }
 
@@ -50,13 +29,9 @@ void AbstractClient::SetHandlers(ConnectionHandler _disconnectHandler, ReceivedD
    dataReceivedHandler = _receivedHandler;
 }
 
-void AbstractClient::Run()
+void AbstractClient::HandleNetworkEvents()
 {
-   while (!canStop)
-   {
-      HandleReceivedData();
-      this_thread::sleep_for(threadWaitTime);
-   }
+   HandleReceivedData();
 }
 
 void AbstractClient::HandleReceivedData()
@@ -69,14 +44,10 @@ void AbstractClient::HandleReceivedData()
       pendingDisconnect = true;
 }
 
-void AbstractClient::ProcessQueue()
+void AbstractClient::ProcessActionQueue()
 {
-   while (!canStop)
-   {
-      ProcessReceivedData();
-      ProcessDisconnection();
-      this_thread::sleep_for(threadWaitTime);
-   }
+   ProcessReceivedData();
+   ProcessDisconnection();
 }
 
 void AbstractClient::ProcessReceivedData()

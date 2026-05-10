@@ -34,7 +34,7 @@ class AbstractServer : public AbstractNetworkAgent
 public:
    using ReceivedDataHandler = std::function<void(const std::string&, DataFrame)>;
 
-   virtual ~AbstractServer();
+   virtual ~AbstractServer() = default;
 
    bool Start(const std::string& address, const unsigned int port);
    bool Stop();

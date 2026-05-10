@@ -2,10 +2,6 @@
 
 using namespace std;
 
-AbstractNetworkAgent::AbstractNetworkAgent()
-{
-}
-
 AbstractNetworkAgent::~AbstractNetworkAgent()
 {
    StopNetworkProcessing();

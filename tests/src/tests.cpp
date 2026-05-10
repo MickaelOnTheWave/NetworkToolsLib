@@ -48,8 +48,20 @@ public :
          serverDataReceived.push_back(data);
       };
 
+      auto clientDisconnectionHandler = [this](const string& ip)
+      {
+         ++clientDisconnections;
+      };
+      auto clientDataHandler = [this](const DataPacket& data)
+      {
+         clientDataReceived.push_back(data);
+      };
+
+
       server.SetHandlers(serverConnectionHandler, serverDisconnectionHandler, serverDataHandler);
       server.SetWaitTime(std::chrono::duration<double, std::milli>(0));
+
+      client.SetHandlers(clientDisconnectionHandler, clientDataHandler);
    }
 
 protected:
@@ -67,6 +79,9 @@ protected:
    int serverConnections = 0;
    int serverDisconnections = 0;
    vector<DataPacket> serverDataReceived;
+
+   int clientDisconnections = 0;
+   vector<DataPacket> clientDataReceived;
 };
 
 /*******************/
@@ -262,3 +277,33 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Multiple clients")
    CHECK(serverDataReceived[5] == packet2a);
 }
 
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Client can reconnect after disconnection")
+{
+   serverPort = 10500;
+   bool ok = server.Start(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   ok = client.Connect(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   SleepFor(1);
+
+   ok = client.Disconnect();
+   REQUIRE( ok == true);
+
+   SleepFor(1);
+
+   CHECK(clientDisconnections == 1);
+
+   ok = client.Connect(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   SleepFor(1);
+
+   ok = client.Disconnect();
+   REQUIRE( ok == true);
+
+   SleepFor(1);
+
+   CHECK(clientDisconnections == 2);
+}

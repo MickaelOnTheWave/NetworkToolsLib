@@ -2,6 +2,15 @@
 
 using namespace std;
 
+AbstractClient::AbstractClient(std::unique_ptr<AbstractNetworkConnector> _connector)
+   : AbstractNetworkAgent(std::move(_connector))
+{
+}
+
+AbstractClient::~AbstractClient()
+{
+}
+
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
    const bool ok = StartConnection(address, port);

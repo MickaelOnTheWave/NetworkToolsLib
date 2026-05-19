@@ -27,7 +27,8 @@ class AbstractClient : public AbstractNetworkAgent
 public:
    using ReceivedDataHandler = std::function<void(DataFrame)>;
 
-   virtual ~AbstractClient() = default;
+   AbstractClient(std::unique_ptr<AbstractNetworkConnector> _connector);
+   virtual ~AbstractClient();
 
    bool Connect(const std::string& address, const unsigned int port);
    bool Disconnect();

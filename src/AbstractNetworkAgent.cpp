@@ -2,6 +2,11 @@
 
 using namespace std;
 
+AbstractNetworkAgent::AbstractNetworkAgent(std::unique_ptr<AbstractNetworkConnector> _connector)
+   : connector(std::move(_connector))
+{
+}
+
 AbstractNetworkAgent::~AbstractNetworkAgent()
 {
    StopNetworkProcessing();

@@ -2,9 +2,18 @@
 
 using namespace std;
 
+AbstractServer::AbstractServer(std::unique_ptr<AbstractNetworkConnector> _connector)
+   : AbstractNetworkAgent(std::move(_connector))
+{
+}
+
+AbstractServer::~AbstractServer()
+{
+}
+
 bool AbstractServer::Start(const std::string& address, const unsigned int port)
 {
-   const bool ok = StartConnection(address, port);
+   const bool ok = connector->StartServer(address, port);
    if (ok)
       StartNetworkProcessing();
    return ok;
@@ -12,9 +21,30 @@ bool AbstractServer::Start(const std::string& address, const unsigned int port)
 
 bool AbstractServer::Stop()
 {
-   const bool ok = StopConnection();
+   const bool ok = connector->Stop();
    if (ok)
       StopNetworkProcessing();
+   return ok;
+}
+
+bool AbstractServer::Send(const std::string& address, const DataFrame& buffer)
+{
+   const int clientSocket = FindClientSocket(address);
+   return connector->Send(clientSocket, buffer);
+}
+
+bool AbstractServer::DisconnectClient(const std::string& address)
+{
+   const int clientSocket = FindClientSocket(address);
+   return DisconnectClient(clientSocket);
+}
+
+bool AbstractServer::DisconnectAllClients()
+{
+   bool ok = false;
+   for (const auto& client : connectedClients)
+      ok |= DisconnectClient(client.first);
+   connectedClients.clear();
    return ok;
 }
 
@@ -34,12 +64,12 @@ void AbstractServer::HandleNetworkEvents()
 void AbstractServer::HandleNewConnections()
 {
    lock_guard<mutex> lock(connectionMutex);
-   std::optional<ClientId> clientId = GetNewConnection();
+   std::optional<ClientId> clientId = connector->GetNewConnection();
    while (clientId.has_value())
    {
       connectionQueue.push(clientId.value());
 
-      clientId = GetNewConnection();
+      clientId = connector->GetNewConnection();
    }
 }
 
@@ -48,7 +78,7 @@ void AbstractServer::HandleReceivedData()
    map<int, string>::iterator it = connectedClients.begin();
    while (it != connectedClients.end())
    {
-      DataResult result = GetNewData(it->first);
+      DataResult result = connector->Receive(it->first);
       while (result.status == DataStatus::Valid)
       {
          ClientId clientId;
@@ -59,7 +89,7 @@ void AbstractServer::HandleReceivedData()
          dataQueue.push(make_pair(clientId, result));
          dataMutex.unlock();
 
-         result = GetNewData(it->first);
+         result = connector->Receive(it->first);
       }
 
       if (result.status == DataStatus::Disconnect)
@@ -82,6 +112,22 @@ map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<i
    disconnectionQueue.push(client);
 
    return newIt;
+}
+
+bool AbstractServer::DisconnectClient(const int socket)
+{
+   // TODO implement
+   return false;
+}
+
+int AbstractServer::FindClientSocket(const std::string& address) const
+{
+   for (const auto& client : connectedClients)
+   {
+      if (client.second == address)
+         return client.first;
+   }
+   return -1;
 }
 
 void AbstractServer::ProcessActionQueue()

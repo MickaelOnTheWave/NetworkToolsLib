@@ -13,17 +13,8 @@
 class PosixTcpServer : public AbstractServer
 {
 public:
+   PosixTcpServer();
    virtual ~PosixTcpServer();
-
-private:
-   bool StartConnection(const std::string& ip, const unsigned int port) override;
-   bool StopConnection() override;
-   std::optional<ClientId> GetNewConnection() override;
-   DataResult GetNewData(const int clientSocket) override;
-
-   int serverSocket = -1;
-   int maxConnections = 10;
-   int dataBufferSize = 1024;
 };
 
 #endif // PosixTcpServer_H

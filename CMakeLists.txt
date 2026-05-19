@@ -6,8 +6,10 @@ option(WITH_CURL_UTILITIES "Enable libcurl utilities" OFF)
 
 set(SOURCES
    src/AbstractNetworkAgent.cpp include/AbstractNetworkAgent.h
+   include/AbstractNetworkConnector.h
    src/AbstractServer.cpp include/AbstractServer.h
    src/AbstractClient.cpp include/AbstractClient.h
+   src/PosixTcpConnector.cpp include/PosixTcpConnector.h
    src/PosixTcpServer.cpp include/PosixTcpServer.h
    src/PosixTcpClient.cpp include/PosixTcpClient.h
    src/emailaccountdata.cpp include/emailaccountdata.h

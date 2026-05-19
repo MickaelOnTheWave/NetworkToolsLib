@@ -5,8 +5,8 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
-#include <optional>
 #include <queue>
 #include <string>
 
@@ -34,10 +34,13 @@ class AbstractServer : public AbstractNetworkAgent
 public:
    using ReceivedDataHandler = std::function<void(const std::string&, DataFrame)>;
 
-   virtual ~AbstractServer() = default;
+   AbstractServer(std::unique_ptr<AbstractNetworkConnector> _connector);
+   virtual ~AbstractServer();
 
    bool Start(const std::string& address, const unsigned int port);
    bool Stop();
+
+   bool Send(const std::string& address, const DataFrame& buffer);
 
    bool DisconnectClient(const std::string& address);
    bool DisconnectAllClients();
@@ -46,11 +49,6 @@ public:
                     ReceivedDataHandler _receivedHandler);
 
 private:
-   virtual bool StartConnection(const std::string& ip, const unsigned int port) = 0;
-   virtual bool StopConnection() = 0;
-   virtual std::optional<ClientId> GetNewConnection() = 0;
-   virtual DataResult GetNewData(const int clientSocket) = 0;
-
    void HandleNetworkEvents() override;
    void HandleNewConnections();
    void HandleReceivedData();
@@ -61,6 +59,9 @@ private:
    void ProcessDisconnections();
 
    std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
+
+   bool DisconnectClient(const int socket);
+   int FindClientSocket(const std::string& address) const;
 
    std::map<int, std::string> connectedClients;
 

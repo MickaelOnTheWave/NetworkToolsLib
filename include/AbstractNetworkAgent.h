@@ -10,6 +10,8 @@
 #include <string>
 #include <thread>
 
+#include "AbstractNetworkConnector.h"
+
 /**
  * @brief Base class for Server and Client communication utilities.
  */
@@ -19,24 +21,12 @@ public:
    using DataFrame = std::vector<uint8_t>;
    using ConnectionHandler = std::function<void(const std::string&)>;
 
-   AbstractNetworkAgent() = default;
+   AbstractNetworkAgent(std::unique_ptr<AbstractNetworkConnector> _connector);
    virtual ~AbstractNetworkAgent();
 
    void SetWaitTime(std::chrono::duration<double, std::milli> waitTime);
 
 protected:
-   struct ClientId
-   {
-      int socket;
-      std::string address;
-   };
-
-   enum class DataStatus { Valid, Disconnect, Error };
-   struct DataResult
-   {
-      DataStatus status;
-      DataFrame data;
-   };
 
    void StartNetworkProcessing();
    void StopNetworkProcessing();
@@ -45,6 +35,7 @@ protected:
    std::mutex disconnectionMutex;
 
 protected:
+   std::unique_ptr<AbstractNetworkConnector> connector = nullptr;
    std::atomic<bool> canStop = true;
    std::shared_ptr<std::thread> receiveThread = nullptr;
    std::shared_ptr<std::thread> processThread = nullptr;

@@ -6,17 +6,15 @@
 class PosixTcpClient : public AbstractClient
 {
 public:
+   PosixTcpClient();
    virtual ~PosixTcpClient();
 
-   bool Send(const std::vector<uint8_t>& buffer) override;
+   bool Send(const DataFrame& buffer) override;
 
 private:
    bool StartConnection(const std::string& ip, const unsigned int port) override;
    bool StopConnection() override;
    DataResult GetNewData() override;
-
-   int clientSocket = -1;
-   int dataBufferSize = 1024;
 };
 
 #endif // POSIXTCPCLIENT_H

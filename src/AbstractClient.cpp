@@ -7,13 +7,9 @@ AbstractClient::AbstractClient(std::unique_ptr<AbstractNetworkConnector> _connec
 {
 }
 
-AbstractClient::~AbstractClient()
-{
-}
-
 bool AbstractClient::Connect(const string& address, const unsigned int port)
 {
-   const bool ok = StartConnection(address, port);
+   const bool ok = connector->StartClient(address, port);
    if (ok)
       StartNetworkProcessing();
    return ok;
@@ -32,6 +28,11 @@ bool AbstractClient::IsConnected() const
    return !canStop;
 }
 
+bool AbstractClient::Send(const DataFrame& buffer)
+{
+   return connector->Send(connector->GetLocalSocket(), buffer);
+}
+
 void AbstractClient::SetHandlers(ConnectionHandler _disconnectHandler, ReceivedDataHandler _receivedHandler)
 {
    disconnectHandler = _disconnectHandler;
@@ -46,7 +47,7 @@ void AbstractClient::HandleNetworkEvents()
 void AbstractClient::HandleReceivedData()
 {
    lock_guard<mutex> lock(dataMutex);
-   const DataResult result = GetNewData();
+   const DataResult result = connector->Receive(connector->GetLocalSocket());
    if (result.status == DataStatus::Valid)
       dataQueue.push(result);
    else if (result.status == DataStatus::Disconnect)
@@ -76,7 +77,7 @@ void AbstractClient::ProcessDisconnection()
    if (pendingDisconnect)
    {
       lock_guard<mutex> lock(disconnectionMutex);
-      const bool ok = StopConnection();
+      const bool ok = connector->Stop();
       if (ok)
       {
          canStop = true;

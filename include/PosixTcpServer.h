@@ -3,6 +3,9 @@
 
 #include "AbstractServer.h"
 
+// TODO Either remove complete this class (too simple)
+// or create a single header file with all types of clients/servers.
+
 /**
  * However, it uses a dual message system to enable variable data buffers :
  *    - First message is the size of the data
@@ -14,7 +17,6 @@ class PosixTcpServer : public AbstractServer
 {
 public:
    PosixTcpServer();
-   virtual ~PosixTcpServer();
 };
 
 #endif // PosixTcpServer_H

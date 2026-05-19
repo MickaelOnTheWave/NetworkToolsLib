@@ -10,6 +10,9 @@
 #include <queue>
 #include <string>
 
+// TODO Rename this class to remove "Abstract". It is not abstract anymore,
+// and is the final class (maybe use final in inheritance?)
+
 /**
  * @brief Base class for Server/Client communication utilities.
  * Created with socket based communication in mind specifically, but
@@ -35,7 +38,7 @@ public:
    using ReceivedDataHandler = std::function<void(const std::string&, DataFrame)>;
 
    AbstractServer(std::unique_ptr<AbstractNetworkConnector> _connector);
-   virtual ~AbstractServer();
+   virtual ~AbstractServer() = default;
 
    bool Start(const std::string& address, const unsigned int port);
    bool Stop();

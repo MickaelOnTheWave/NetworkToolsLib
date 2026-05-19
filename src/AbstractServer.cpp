@@ -7,10 +7,6 @@ AbstractServer::AbstractServer(std::unique_ptr<AbstractNetworkConnector> _connec
 {
 }
 
-AbstractServer::~AbstractServer()
-{
-}
-
 bool AbstractServer::Start(const std::string& address, const unsigned int port)
 {
    const bool ok = connector->StartServer(address, port);
@@ -116,7 +112,7 @@ map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<i
 
 bool AbstractServer::DisconnectClient(const int socket)
 {
-   // TODO implement
+   // TODO implement and test
    return false;
 }
 

@@ -3,18 +3,13 @@
 
 #include "AbstractClient.h"
 
+// TODO Either remove complete this class (too simple)
+// or create a single header file with all types of clients/servers.
+
 class PosixTcpClient : public AbstractClient
 {
 public:
    PosixTcpClient();
-   virtual ~PosixTcpClient();
-
-   bool Send(const DataFrame& buffer) override;
-
-private:
-   bool StartConnection(const std::string& ip, const unsigned int port) override;
-   bool StopConnection() override;
-   DataResult GetNewData() override;
 };
 
 #endif // POSIXTCPCLIENT_H

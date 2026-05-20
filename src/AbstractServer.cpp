@@ -37,11 +37,15 @@ bool AbstractServer::DisconnectClient(const std::string& address)
 
 bool AbstractServer::DisconnectAllClients()
 {
-   bool ok = false;
-   for (const auto& client : connectedClients)
-      ok |= DisconnectClient(client.first);
-   connectedClients.clear();
-   return ok;
+   while (!connectedClients.empty())
+   {
+      const auto clientIt = connectedClients.begin();
+      const bool ok = DisconnectClient(clientIt->first);
+      if (!ok)
+         return false;
+      connectedClients.erase(clientIt);
+   }
+   return true;
 }
 
 void AbstractServer::SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler, ReceivedDataHandler _receivedHandler)
@@ -112,8 +116,7 @@ map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<i
 
 bool AbstractServer::DisconnectClient(const int socket)
 {
-   // TODO implement and test
-   return false;
+   return connector->StopClient(socket);
 }
 
 int AbstractServer::FindClientSocket(const std::string& address) const

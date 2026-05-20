@@ -27,6 +27,7 @@ public:
    virtual bool StartClient(const std::string& ip, const unsigned int port) = 0;
    virtual bool StartServer(const std::string& ip, const unsigned int port) = 0;
    virtual bool Stop() = 0;
+   virtual bool StopClient(const int socket) = 0;
 
    virtual bool Send(const int socket, const DataFrame& buffer) = 0;
    virtual DataResult Receive(const int socket) = 0;

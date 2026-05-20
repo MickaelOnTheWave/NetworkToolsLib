@@ -12,7 +12,9 @@ public:
 
    bool StartClient(const std::string& ip, const unsigned int port) override;
    bool StartServer(const std::string& ip, const unsigned int port) override;
+
    bool Stop() override;
+   bool StopClient(const int socket) override;
 
    bool Send(const int socket, const DataFrame& buffer) override;
    DataResult Receive(const int socket) override;

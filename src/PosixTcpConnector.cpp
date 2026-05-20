@@ -52,7 +52,12 @@ bool PosixTcpConnector::StartServer(const string& ip, const unsigned int port)
 
 bool PosixTcpConnector::Stop()
 {
-   const int returnValue = close(socketId);
+   return StopClient(socketId);
+}
+
+bool PosixTcpConnector::StopClient(const int socket)
+{
+   const int returnValue = close(socket);
    return (returnValue >= 0);
 }
 

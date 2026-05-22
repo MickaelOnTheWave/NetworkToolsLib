@@ -46,6 +46,8 @@ public:
    bool Send(const std::string& address, const DataFrame& buffer);
 
    bool DisconnectClient(const std::string& address);
+   bool DisconnectClient(const int socket);
+
    bool DisconnectAllClients();
 
    void SetHandlers(ConnectionHandler _connectHandler, ConnectionHandler _disconnectHandler,
@@ -63,7 +65,6 @@ private:
 
    std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
 
-   bool DisconnectClient(const int socket);
    int FindClientSocket(const std::string& address) const;
 
    std::map<int, std::string> connectedClients;

@@ -36,6 +36,7 @@ public:
    bool Connect(const std::string& address, const unsigned int port);
    bool Disconnect();
    bool IsConnected() const;
+   int GetId() const;
 
    bool Send(const DataFrame& buffer);
 

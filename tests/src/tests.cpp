@@ -307,3 +307,75 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Client can reconnect after disconne
 
    CHECK(clientDisconnections == 2);
 }
+
+
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect a single client")
+{
+   serverPort = 10006;
+   bool ok = server.Start(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   const int clientCount = 5;
+   vector<unique_ptr<PosixTcpClient>> clients;
+   clients.reserve(clientCount);
+
+   for (int i=0; i<clientCount; ++i)
+   {
+      auto newClient = make_unique<PosixTcpClient>();
+      ok = newClient->Connect(serverIp, serverPort);
+      REQUIRE( ok == true);
+      clients.emplace_back(std::move(newClient));
+   }
+
+   SleepFor(1);
+
+   ok = server.DisconnectClient(clients[1]->GetId());
+   REQUIRE(ok == true);
+
+   ok = server.DisconnectClient(clients[3]->GetId());
+   REQUIRE(ok == true);
+
+   SleepFor(1);
+
+   CHECK(serverConnections == clientCount);
+   CHECK(serverDisconnections == 2);
+
+   CHECK(clients[0]->IsConnected() == true);
+   CHECK(clients[1]->IsConnected() == false);
+   CHECK(clients[1]->IsConnected() == true);
+   CHECK(clients[1]->IsConnected() == false);
+   CHECK(clients[1]->IsConnected() == true);
+}
+
+TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect all clients")
+{
+   serverPort = 10007;
+   bool ok = server.Start(serverIp, serverPort);
+   REQUIRE( ok == true);
+
+   const int clientCount = 5;
+   vector<unique_ptr<PosixTcpClient>> clients;
+   clients.reserve(clientCount);
+
+   for (int i=0; i<clientCount; ++i)
+   {
+      auto newClient = make_unique<PosixTcpClient>();
+      ok = newClient->Connect(serverIp, serverPort);
+      REQUIRE( ok == true);
+      clients.emplace_back(std::move(newClient));
+   }
+
+   SleepFor(1);
+
+   ok = server.DisconnectAllClients();
+   REQUIRE(ok == true);
+
+   SleepFor(1);
+
+   CHECK(serverConnections == clientCount);
+   CHECK(serverDisconnections == clientCount);
+
+   for (int i=0; i<clientCount; ++i)
+      CHECK(clients[i]->IsConnected() == false);
+}
+

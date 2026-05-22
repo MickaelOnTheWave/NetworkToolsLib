@@ -28,6 +28,11 @@ bool AbstractClient::IsConnected() const
    return !canStop;
 }
 
+int AbstractClient::GetId() const
+{
+   return connector->GetLocalSocket();
+}
+
 bool AbstractClient::Send(const DataFrame& buffer)
 {
    return connector->Send(connector->GetLocalSocket(), buffer);

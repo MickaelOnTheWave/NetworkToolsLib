@@ -64,6 +64,11 @@ public :
       client.SetHandlers(clientDisconnectionHandler, clientDataHandler);
    }
 
+   ~PosixTcpServerTestFixture()
+   {
+      server.Stop();
+   }
+
 protected:
    void SleepFor(const int timeInMs)
    {
@@ -311,7 +316,7 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Client can reconnect after disconne
 
 TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect a single client")
 {
-   serverPort = 10006;
+   serverPort = 10009;
    bool ok = server.Start(serverIp, serverPort);
    REQUIRE( ok == true);
 
@@ -349,7 +354,7 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect a single clie
 
 TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect all clients")
 {
-   serverPort = 10007;
+   serverPort = 10008;
    bool ok = server.Start(serverIp, serverPort);
    REQUIRE( ok == true);
 
@@ -370,12 +375,14 @@ TEST_CASE_METHOD(PosixTcpServerTestFixture, "Server can disconnect all clients")
    ok = server.DisconnectAllClients();
    REQUIRE(ok == true);
 
-   SleepFor(1);
+   SleepFor(50);
 
    CHECK(serverConnections == clientCount);
    CHECK(serverDisconnections == clientCount);
 
    for (int i=0; i<clientCount; ++i)
       CHECK(clients[i]->IsConnected() == false);
+
+   server.Stop();
 }
 

@@ -54,6 +54,8 @@ public:
                     ReceivedDataHandler _receivedHandler);
 
 private:
+   using ClientMapIt = std::map<int, std::string>::iterator;
+
    void HandleNetworkEvents() override;
    void HandleNewConnections();
    void HandleReceivedData();
@@ -63,9 +65,13 @@ private:
    void ProcessReceivedData();
    void ProcessDisconnections();
 
-   std::map<int, std::string>::iterator HandleDisconnection(const std::pair<int, std::string>& clientId);
+   ClientMapIt HandleDisconnection(const std::pair<int, std::string>& clientId);
 
    int FindClientSocket(const std::string& address) const;
+
+   bool DisconnectClient(ClientMapIt clientIt);
+   ClientMapIt AddToDisconnectionQueue(const int socket);
+   ClientMapIt AddToDisconnectionQueue(ClientMapIt clientIt);
 
    std::map<int, std::string> connectedClients;
 

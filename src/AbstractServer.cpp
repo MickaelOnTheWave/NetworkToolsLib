@@ -43,7 +43,6 @@ bool AbstractServer::DisconnectAllClients()
       const bool ok = DisconnectClient(clientIt->first);
       if (!ok)
          return false;
-      connectedClients.erase(clientIt);
    }
    return true;
 }
@@ -75,7 +74,7 @@ void AbstractServer::HandleNewConnections()
 
 void AbstractServer::HandleReceivedData()
 {
-   map<int, string>::iterator it = connectedClients.begin();
+   ClientMapIt it = connectedClients.begin();
    while (it != connectedClients.end())
    {
       DataResult result = connector->Receive(it->first);
@@ -99,24 +98,18 @@ void AbstractServer::HandleReceivedData()
    }
 }
 
-map<int, string>::iterator AbstractServer::HandleDisconnection(const std::pair<int, string>& clientId)
+AbstractServer::ClientMapIt AbstractServer::HandleDisconnection(const std::pair<int, string>& clientId)
 {
    lock_guard<mutex> lock(disconnectionMutex);
-
-   ClientId client;
-   client.socket = clientId.first;
-   client.address = clientId.second;
-
-   auto clientIt = connectedClients.find(clientId.first);
-   map<int, string>::iterator newIt = connectedClients.erase(clientIt);
-   disconnectionQueue.push(client);
-
-   return newIt;
+   return AddToDisconnectionQueue(clientId.first);
 }
 
 bool AbstractServer::DisconnectClient(const int socket)
 {
-   return connector->StopClient(socket);
+   const bool ok = connector->StopClient(socket);
+   if (ok)
+      AddToDisconnectionQueue(socket);
+   return ok;
 }
 
 int AbstractServer::FindClientSocket(const std::string& address) const
@@ -127,6 +120,35 @@ int AbstractServer::FindClientSocket(const std::string& address) const
          return client.first;
    }
    return -1;
+}
+
+bool AbstractServer::DisconnectClient(ClientMapIt clientIt)
+{
+   const bool ok = connector->StopClient(clientIt->first);
+   if (ok)
+      AddToDisconnectionQueue(clientIt);
+   return ok;
+}
+
+AbstractServer::ClientMapIt AbstractServer::AddToDisconnectionQueue(const int socket)
+{
+   auto clientIt = connectedClients.find(socket);
+   return AddToDisconnectionQueue(clientIt);
+}
+
+AbstractServer::ClientMapIt AbstractServer::AddToDisconnectionQueue(ClientMapIt clientIt)
+{
+   if (clientIt == connectedClients.end())
+      return connectedClients.end();
+
+   ClientId client;
+   client.socket = clientIt->first;
+   client.address = clientIt->second;
+
+   map<int, string>::iterator newIt = connectedClients.erase(clientIt);
+
+   disconnectionQueue.push(client);
+   return newIt;
 }
 
 void AbstractServer::ProcessActionQueue()
@@ -164,8 +186,8 @@ void AbstractServer::ProcessDisconnections()
    lock_guard<mutex> lock(disconnectionMutex);
    if (!disconnectionQueue.empty())
    {
-      const auto& client = disconnectionQueue.front();
-      disconnectHandler(client.address);
+      const string clientAddress = disconnectionQueue.front().address;
+      disconnectHandler(clientAddress);
       disconnectionQueue.pop();
    }
 }
